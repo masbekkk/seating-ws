@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Socket.io Channels</title>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <h1>Dynamic WebSocket Events</h1>
+    <input type="text" id="eventInput" placeholder="Enter event name">
+    <button onclick="subscribeToEvent()">Subscribe</button>
+
+    <input type="text" id="messageInput" placeholder="Enter message">
+    <button onclick="publishMessage()">Publish</button>
+
+    <ul id="messages"></ul>
+
+    <script>
+        const socket = io();
+
+        function subscribeToEvent() {
+            const eventName = document.getElementById("eventInput").value.trim();
+            if (eventName) {
+                socket.emit("subscribe", eventName);
+                socket.on(eventName, (data) => {
+                    displayMessage(`[${eventName}] ${JSON.stringify(data)}`);
+                });
+                console.log(`Subscribed to ${eventName}`);
+            }
+        }
+
+        function publishMessage() {
+            const eventName = document.getElementById("eventInput").value.trim();
+            const message = document.getElementById("messageInput").value.trim();
+            if (eventName && message) {
+                socket.emit("publish", { eventName, data: { message } });
+                console.log(`Published to ${eventName}: ${message}`);
+            }
+        }
+
+        function displayMessage(msg) {
+            const messagesList = document.getElementById("messages");
+            const listItem = document.createElement("li");
+            listItem.textContent = msg;
+            messagesList.appendChild(listItem);
+        }
+    </script>
+</body>
+</html>
