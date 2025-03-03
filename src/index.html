@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Socket.io Client</title>
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
 </head>
+
 <body>
     <h1>Socket.io Client broadcast to seating-update only</h1>
     <input type="text" id="messageInput" placeholder="Type a message...">
@@ -13,7 +15,11 @@
     <ul id="messages"></ul>
 
     <script>
-        const socket = io("http://localhost:3000");
+        const SOCKET_URL = window.location.hostname === "localhost"
+            ? "http://localhost:3000"
+            : "https://seating-ws.taulink.id";
+
+        const socket = io(SOCKET_URL);
 
         socket.on("connect", () => {
             console.log("Connected to server");
@@ -45,4 +51,5 @@
         }
     </script>
 </body>
+
 </html>
