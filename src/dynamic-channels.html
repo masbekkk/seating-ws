@@ -16,7 +16,11 @@
     <ul id="messages"></ul>
 
     <script>
-        const socket = io();
+         const SOCKET_URL = window.location.hostname === "localhost"
+            ? "http://localhost:3000"
+            : "https://seating-ws.taulink.id";
+
+        const socket = io(SOCKET_URL);
 
         function subscribeToEvent() {
             const eventName = document.getElementById("eventInput").value.trim();
