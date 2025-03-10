@@ -1,9 +1,13 @@
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const server = http.createServer(app);
+
+app.use(cookieParser());
+app.use(express.static('src'));
 
 const io = new Server(server, {
     cors: {
@@ -12,7 +16,22 @@ const io = new Server(server, {
         credentials: true
     }
 });
-app.use(express.static('src'));
+
+// Middleware to check session cookie before allowing connection
+io.use((socket, next) => {
+    const cookies = socket.handshake.headers.cookie;
+    if (!cookies) {
+        return next(new Error("Unauthorized: No session cookie found"));
+    }
+
+    const sessionCookie = cookies.split("; ").find(row => row.startsWith("X-SESSION-ID="));
+    if (!sessionCookie) {
+        return next(new Error("Unauthorized: Missing session token"));
+    }
+
+    console.log(`Client connected with session: ${sessionCookie.split("=")[1]}`);
+    next(); // Allow connection
+});
 
 io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
@@ -43,5 +62,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
