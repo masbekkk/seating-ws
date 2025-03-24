@@ -21,60 +21,18 @@
         const SOCKET_URL = window.location.hostname === "localhost"
             ? "http://localhost:3000"
             : "https://seating-ws.taulink.id";
-
-        const API_URL = window.location.hostname === "localhost"
-            ? "http://127.0.0.1:8000/api/set-cookie"
-            : "https://your-laravel-api.com/api/set-cookie";
-
-        // Function to get session cookie from Laravel
-        async function getSessionCookie() {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'GET',
-                    // credentials: "include",
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to get session cookie");
-                }
-
-                const data = await response.json();
-                console.log("Session Cookie Set:", data.message);
-
-                // Now connect to Socket.IO after session cookie is set
-                initializeSocket();
-            } catch (error) {
-                console.error("Error fetching session:", error);
+        const token = "";
+        const socket = io(SOCKET_URL, {
+            auth: {
+                token: token
             }
-        }
-
-        function initializeSocket() {
-            const socket = io(SOCKET_URL, {
-                withCredentials: true, 
-                extraHeaders: {
-                    "X-SESSION-ID": document.cookie  // Include session cookie
-                }
-            });
-            console.log(socket)
-            socket.on("connect", () => {
-                console.log("Connected to Socket.IO", socket.id);
-            });
-
-            socket.on("message", (msg) => {
-                displayMessage(msg);
-            });
-
-            window.socket = socket;
-        }
+        });
 
         function subscribeToEvent() {
             const eventName = document.getElementById("eventInput").value.trim();
-            if (eventName && window.socket) {
-                window.socket.emit("subscribe", eventName);
-                window.socket.on(eventName, (data) => {
+            if (eventName) {
+                socket.emit("subscribe", eventName);
+                socket.on(eventName, (data) => {
                     displayMessage(`[${eventName}] ${JSON.stringify(data)}`);
                 });
                 console.log(`Subscribed to ${eventName}`);
@@ -84,8 +42,8 @@
         function publishMessage() {
             const eventName = document.getElementById("eventInput").value.trim();
             const message = document.getElementById("messageInput").value.trim();
-            if (eventName && message && window.socket) {
-                window.socket.emit("publish", { eventName, data: { message } });
+            if (eventName && message) {
+                socket.emit("publish", { eventName, data: { message } });
                 console.log(`Published to ${eventName}: ${message}`);
             }
         }
@@ -96,9 +54,6 @@
             listItem.textContent = msg;
             messagesList.appendChild(listItem);
         }
-
-        // Fetch session cookie first before connecting to Socket.IO
-        getSessionCookie();
     </script>
 </body>
 

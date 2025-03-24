@@ -1,13 +1,16 @@
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
-const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
 
-app.use(cookieParser());
+// Serve static files
 app.use(express.static('src'));
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const io = new Server(server, {
     cors: {
@@ -17,41 +20,40 @@ const io = new Server(server, {
     }
 });
 
-// Middleware to check session cookie before allowing connection
+// JWT auth middleware
 io.use((socket, next) => {
-    const cookies = socket.handshake.headers.cookie;
-    if (!cookies) {
-        return next(new Error("Unauthorized: No session cookie found"));
+    const token = socket.handshake.auth.token;
+
+    if (!token) {
+        return next(new Error("Authentication error: Token not provided"));
     }
 
-    const sessionCookie = cookies.split("; ").find(row => row.startsWith("X-SESSION-ID="));
-    if (!sessionCookie) {
-        return next(new Error("Unauthorized: Missing session token"));
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        socket.user = decoded; // Save user data to socket
+        next();
+    } catch (err) {
+        return next(new Error("Authentication error: Invalid token"));
     }
-
-    console.log(`Client connected with session: ${sessionCookie.split("=")[1]}`);
-    next(); // Allow connection
 });
 
 io.on('connection', (socket) => {
-    console.log(`Client connected: ${socket.id}`);
+    console.log(`Client connected: ${socket.id}, user: ${JSON.stringify(socket.user)}`);
 
-    socket.emit('message', 'Welcome to the WebSocket server!');
+    socket.emit('message', `Welcome ${socket.user.name || 'user'}!`);
 
-    // Dynamic Event Subscription
     socket.on('subscribe', (eventName) => {
         console.log(`Client ${socket.id} subscribed to: ${eventName}`);
         socket.join(eventName);
     });
 
-    // Dynamic Event Broadcasting
     socket.on('publish', ({ eventName, data }) => {
         console.log(`Received event ${eventName} from ${socket.id}:`, data);
-        io.to(eventName).emit(eventName, data); // Send to all subscribers of eventName
+        io.to(eventName).emit(eventName, data);
     });
 
     socket.on('seating-update', (msg) => {
-        console.log(`Received message from ${socket.id}: ${msg}`);
+        console.log(`Seating update from ${socket.id}: ${msg}`);
         io.emit('seating-update', msg);
     });
 
